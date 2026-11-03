@@ -46,7 +46,7 @@ final class Redactor {
 				$result[ $key ] = $context[ $key ];
 			}
 		}
-		if ( isset( $context['version'] ) && is_string( $context['version'] ) && preg_match( '/^\d{1,3}\.\d{1,3}\.\d{1,3}(?:-(?:dev|rc\.\d{1,3}))?$/D', $context['version'] ) ) {
+		if ( isset( $context['version'] ) && is_string( $context['version'] ) && preg_match( '/^\d{1,3}\.\d{1,3}\.\d{1,3}(?:-(?:dev(?:\.[1-9]\d{0,2})?|rc\.\d{1,3}))?$/D', $context['version'] ) ) {
 			$result['version'] = $context['version'];
 		}
 		if ( isset( $context['channel'] ) && in_array( $context['channel'], array( 'dev', 'rc', 'stable' ), true ) ) {

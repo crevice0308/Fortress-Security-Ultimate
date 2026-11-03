@@ -5,7 +5,7 @@
  * @package FortressSecurityUltimate
  */
 
-defined( 'FSU_VERSION' ) || define( 'FSU_VERSION', '1.0.0-dev' );
+defined( 'FSU_VERSION' ) || define( 'FSU_VERSION', '1.0.0-dev.1' );
 defined( 'FSU_FILE' ) || define( 'FSU_FILE', dirname( __DIR__ ) . '/fortress-security-ultimate.php' );
 defined( 'FSU_DIR' ) || define( 'FSU_DIR', dirname( __DIR__ ) . '/' );
 defined( 'FSU_SAFE_MODE' ) || define( 'FSU_SAFE_MODE', false );

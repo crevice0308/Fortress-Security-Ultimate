@@ -30,7 +30,7 @@ function fsu_smoke_assert( bool $condition, string $message ): void {
 	echo 'PASS ' . esc_html( $message ) . "\n";
 }
 
-fsu_smoke_assert( '1.0.0-dev' === FSU_VERSION, 'Development channel is retained' );
+fsu_smoke_assert( 1 === preg_match( '/^1\.0\.0-dev(?:\.[1-9][0-9]{0,2})?$/D', FSU_VERSION ), 'Bounded development channel is retained' );
 foreach ( array( 'admin_post_fsu_save', 'admin_post_fsu_restore', 'admin_post_fsu_export' ) as $hook ) {
 	fsu_smoke_assert( false !== has_action( $hook ), $hook . ' is registered' );
 }

@@ -51,6 +51,9 @@ final class Exporter {
 		}
 		return $this->logger->with_lock(
 			function () use ( $hours, $environment ): string {
+				// Reclaim expired artifacts before checking space, without reserving ZIP bytes
+				// or deleting current logs merely to make room for an export.
+				$this->logger->prune_locked();
 				$storage = $this->logger->stats();
 				$maximum = $storage['max_bytes'];
 				if ( ! $storage['available'] || $maximum < 524288 ) {

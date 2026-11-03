@@ -2,7 +2,7 @@
 
 **WordPress・PHPの環境診断と、機密情報を最小化した開発者ログを備えるセキュリティ基盤。**
 
-現在のバージョンは **1.0.0-dev / Phase 1 / Pre-release** です。日本語の管理画面、読み取り専用診断、非公開JSONLログ、診断ZIP、設定復元・セーフモードを実装しています。隔離した検証環境で利用してください。
+現在のバージョンは **1.0.0-dev.1 / Phase 1 / Pre-release** です。日本語の管理画面、読み取り専用診断、非公開JSONLログ、診断ZIP、設定復元・セーフモードを実装しています。隔離した検証環境で利用してください。
 
 [ソースコード](https://github.com/crevice0308/Fortress-Security-Ultimate) · [Actions](https://github.com/crevice0308/Fortress-Security-Ultimate/actions) · [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) · [検証記録](docs/verification.md) · [セキュリティ方針](SECURITY.md)
 
@@ -25,9 +25,19 @@
 
 診断の合格は、その設定項目の確認結果です。攻撃防御や侵害がないことを保証する判定ではありません。Phase 1をWAFとして運用しないでください。PHP本体・OS・Webサーバーの脆弱性をプラグインだけで修正する機能もありません。
 
+## 1.0.0-dev.1 の修正
+
+再監査で確認した、診断ZIPと配布生成の不具合を修正する更新です。
+
+- 期限切れZIP・ログの整理前に空き容量を判定し、出力できなくなる問題を修正。
+- PHP出力バッファー内の文字列や終了処理の追加出力が、診断ZIPを破損させる問題を修正。
+- ビルド出力のシンボリックリンク、Windowsで危険になるアーカイブ内パス、検証失敗時の配布物混在を対策。
+
+これらは再現を確認した信頼性・ビルド整合性の修正です。未認証の遠隔悪用やCVEを確認したという報告ではありません。旧 `v1.0.0-dev` のタグ・配布物は上書きせず、新しいPre-releaseとして管理します。
+
 ## ZIPからインストール
 
-1. [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) に開発版が公開されたら、Assetsの **`fortress-security-ultimate-1.0.0-dev.zip`** を取得します。ソース用の `-source.zip` やGitHub自動生成のSource code ZIPはインストール用ではありません。
+1. [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) で **v1.0.0-dev.1** の公開を確認し、Assetsの **`fortress-security-ultimate-1.0.0-dev.1.zip`** を取得します。ソース用の `-source.zip` やGitHub自動生成のSource code ZIPはインストール用ではありません。
 2. WordPressの「プラグイン → 新規追加 → プラグインのアップロード」からZIPを選択します。
 3. 有効化し、管理メニューの「Fortress Security」を開きます。
 4. 環境診断、ログ保存先の状態、設定保存、ZIP取得を確認します。
@@ -73,10 +83,11 @@ wp cron event run fsu_prune_logs --path=/absolute/path/to/wordpress
 
 | 区分 | 環境・状態 |
 | --- | --- |
-| ローカル実行確認済み | PHP 8.3.6（ディストリビューション版）・MariaDB 10.11.14・WordPress 7.1.4 |
-| 実WordPress確認 | 有効化・管理画面・診断・設定・復旧・ZIPなどのスモークテスト。HTTP 200、nonce不正時403、ZIPメタデータを確認 |
+| 初回開発版のローカル確認 | PHP 8.3.6（ディストリビューション版）・MariaDB 10.11.14・WordPress 7.1.4 |
+| 初回開発版の実WordPress確認 | 有効化・管理画面・診断・設定・復旧・ZIPのスモーク、HTTP 200、nonce不正時403、ZIPメタデータ |
 | CI設定上の対象 | PHP 8.2 / 8.3 / 8.4 / 8.5 × WordPress 7.0.8 / 7.1.4 |
-| CI全組み合わせの実行結果 | PHP品質4件・WordPress互換性8件がすべて成功。[実行記録](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) |
+| 初回開発版 `1.0.0-dev` のCI記録 | PHP品質4件・WordPress互換性8件が成功。[過去の実行記録](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) |
+| 今回の `1.0.0-dev.1` | 修正後の実行結果・回帰試験は検証記録へ記載。旧CI結果を今回の合格として扱わない |
 | ブラウザー表示 | モバイル用CSSは実装。実ブラウザーでの描画確認は未完了 |
 
 PHPUnit、PHPStan、WordPress Coding Standards、依存監査、配布テストの件数・結果と監査での修正内容は [検証記録](docs/verification.md) を参照してください。CI設定の存在を、全環境での合格として扱いません。
@@ -106,7 +117,7 @@ python3 scripts/test_package.py
 
 `dist/` にインストール用ZIP、`-source.zip`、`SHA256SUMS`、`package-report.json` を生成します。`--output /absolute/path` で出力先を変更できます。配布物は許可されたファイルだけで構成し、`vendor`、テスト、認証情報をインストール用ZIPへ含めません。
 
-`build-info.json` には版、devチャネル、Gitコミット、未コミット変更の有無、ビルド基準時刻、`stable: false` を収録します。現ビルドスクリプトは `1.0.0-dev` のみを許可します。開発依存の脆弱性監査には外部への接続が必要です。
+`build-info.json` には版、devチャネル、Gitコミット、未コミット変更の有無、ビルド基準時刻、`stable: false` を収録します。ビルドスクリプトは開発版の版形式のみを許可し、RC・Stableを生成しません。開発依存の脆弱性監査には外部への接続が必要です。
 
 ## 公開・ライセンス
 
