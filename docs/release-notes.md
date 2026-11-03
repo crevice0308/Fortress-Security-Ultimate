@@ -1,8 +1,8 @@
-# Fortress Security Ultimate v1.0.0-dev.1 — Phase 1 Pre-release
+# Fortress Security Ultimate v1.0.0-dev.2 — Phase 1 Pre-release
 
-Phase 1の再監査で確認した、診断ZIPと配布生成の不具合を修正する開発版更新です。旧 `v1.0.0-dev` のタグと配布物を維持し、新しいPre-releaseとして管理します。Stableや商用販売版ではありません。
+ユーザー指定の修正版番号へ、プラグイン表示・パッケージ・文書の版を揃える更新です。機能・修正内容は公開済み `1.0.0-dev.1` と同じで、新たな不具合修正や追加監査を意味しません。旧 `v1.0.0-dev`・`v1.0.0-dev.1` のタグと配布物を維持し、新しいコミットのCI成功後に別のPre-releaseとして公開します。Stableや商用販売版ではありません。
 
-## 修正内容
+## 1.0.0-dev.1 から引き継ぐ修正
 
 | 対象 | 確認した問題 | 修正 |
 | --- | --- | --- |
@@ -15,15 +15,15 @@ Phase 1の再監査で確認した、診断ZIPと配布生成の不具合を修�
 
 ## 検証の記録
 
-今回の修正に対する回帰試験、最終的なテスト件数、静的解析、実WordPress・HTTP・CI結果は [検証記録](verification.md) に記載します。過去の結果と今回の更新を区別します。
+`1.0.0-dev.1` の修正に対する回帰試験と、版表記を変更した `1.0.0-dev.2` のCI結果は [検証記録](verification.md) に記載します。過去の結果と今回の更新を区別します。
 
-初回開発版 `1.0.0-dev` では、PHP 8.3.6・MariaDB 10.11.14・WordPress 7.1.4でローカル検証を行い、[過去のCI](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) でPHP品質4件・WordPress互換性8組み合わせが成功しています。この記録を `1.0.0-dev.1` の合格結果として扱いません。最新の実行は [Actions](https://github.com/crevice0308/Fortress-Security-Ultimate/actions) を確認してください。
+初回開発版 `1.0.0-dev` では、PHP 8.3.6・MariaDB 10.11.14・WordPress 7.1.4でローカル検証を行い、[過去のCI](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) でPHP品質4件・WordPress互換性8組み合わせが成功しています。この記録を `1.0.0-dev.2` のCI合格結果として扱いません。最新の実行は [Actions](https://github.com/crevice0308/Fortress-Security-Ultimate/actions) を確認してください。
 
 CI対象はPHP 8.2 / 8.3 / 8.4 / 8.5 × WordPress 7.0.8 / 7.1.4です。実ブラウザーでの描画検証は未完了です。
 
 ## 導入・再現手順
 
-Releaseの `v1.0.0-dev.1` が公開されたら、Assetsの **`fortress-security-ultimate-1.0.0-dev.1.zip`** を隔離WordPressのプラグイン画面へアップロードします。`-source.zip` とGitHub自動生成のSource code ZIPは開発・参照用です。
+Releaseの `v1.0.0-dev.2` が公開されたら、Assetsの **`fortress-security-ultimate-1.0.0-dev.2.zip`** を隔離WordPressのプラグイン画面へアップロードします。`-source.zip` とGitHub自動生成のSource code ZIPは開発・参照用です。
 
 ソースから生成する場合は、対象コミットを取得して次を実行します。
 

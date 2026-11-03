@@ -2,7 +2,7 @@
 
 **WordPress・PHPの環境診断と、機密情報を最小化した開発者ログを備えるセキュリティ基盤。**
 
-現在のバージョンは **1.0.0-dev.1 / Phase 1 / Pre-release** です。日本語の管理画面、読み取り専用診断、非公開JSONLログ、診断ZIP、設定復元・セーフモードを実装しています。隔離した検証環境で利用してください。
+現在のバージョンは **1.0.0-dev.2 / Phase 1 / Pre-release** です。日本語の管理画面、読み取り専用診断、非公開JSONLログ、診断ZIP、設定復元・セーフモードを実装しています。隔離した検証環境で利用してください。
 
 [ソースコード](https://github.com/crevice0308/Fortress-Security-Ultimate) · [Actions](https://github.com/crevice0308/Fortress-Security-Ultimate/actions) · [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) · [検証記録](docs/verification.md) · [セキュリティ方針](SECURITY.md)
 
@@ -25,7 +25,11 @@
 
 診断の合格は、その設定項目の確認結果です。攻撃防御や侵害がないことを保証する判定ではありません。Phase 1をWAFとして運用しないでください。PHP本体・OS・Webサーバーの脆弱性をプラグインだけで修正する機能もありません。
 
-## 1.0.0-dev.1 の修正
+## 1.0.0-dev.2 の変更
+
+ユーザー指定の修正版番号へ表示・パッケージ版を揃える更新です。機能と修正内容は公開済み `1.0.0-dev.1` と同じで、新しい不具合修正や追加監査を意味しません。旧タグ・配布物を維持し、新しいコミットのCI成功後に別のPre-releaseとして公開します。
+
+## 1.0.0-dev.1 から引き継ぐ修正
 
 再監査で確認した、診断ZIPと配布生成の不具合を修正する更新です。
 
@@ -37,7 +41,7 @@
 
 ## ZIPからインストール
 
-1. [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) で **v1.0.0-dev.1** の公開を確認し、Assetsの **`fortress-security-ultimate-1.0.0-dev.1.zip`** を取得します。ソース用の `-source.zip` やGitHub自動生成のSource code ZIPはインストール用ではありません。
+1. [Releases](https://github.com/crevice0308/Fortress-Security-Ultimate/releases) で **v1.0.0-dev.2** の公開を確認し、Assetsの **`fortress-security-ultimate-1.0.0-dev.2.zip`** を取得します。ソース用の `-source.zip` やGitHub自動生成のSource code ZIPはインストール用ではありません。
 2. WordPressの「プラグイン → 新規追加 → プラグインのアップロード」からZIPを選択します。
 3. 有効化し、管理メニューの「Fortress Security」を開きます。
 4. 環境診断、ログ保存先の状態、設定保存、ZIP取得を確認します。
@@ -87,7 +91,7 @@ wp cron event run fsu_prune_logs --path=/absolute/path/to/wordpress
 | 初回開発版の実WordPress確認 | 有効化・管理画面・診断・設定・復旧・ZIPのスモーク、HTTP 200、nonce不正時403、ZIPメタデータ |
 | CI設定上の対象 | PHP 8.2 / 8.3 / 8.4 / 8.5 × WordPress 7.0.8 / 7.1.4 |
 | 初回開発版 `1.0.0-dev` のCI記録 | PHP品質4件・WordPress互換性8件が成功。[過去の実行記録](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) |
-| 今回の `1.0.0-dev.1` | 修正後の実行結果・回帰試験は検証記録へ記載。旧CI結果を今回の合格として扱わない |
+| 今回の `1.0.0-dev.2` | バージョン表記を更新。新コミットのCI結果は検証記録へ記載し、過去の実行と区別する |
 | ブラウザー表示 | モバイル用CSSは実装。実ブラウザーでの描画確認は未完了 |
 
 PHPUnit、PHPStan、WordPress Coding Standards、依存監査、配布テストの件数・結果と監査での修正内容は [検証記録](docs/verification.md) を参照してください。CI設定の存在を、全環境での合格として扱いません。

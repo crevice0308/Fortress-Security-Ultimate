@@ -10,7 +10,9 @@
 4. レビュー可能なPRと実際のCI結果を記録する。
 5. 品質・互換性チェック成功後に、対象コミットから開発版を公開する。
 
-現在の更新は `1.0.0-dev.1`、予定タグは `v1.0.0-dev.1` です。初回の `v1.0.0-dev` は履歴として維持し、既存タグ・Release・添付ファイルを上書きしません。リモート履歴の強制上書きやリポジトリの再作成も行いません。
+現在の更新は `1.0.0-dev.2`、予定タグは `v1.0.0-dev.2` です。`v1.0.0-dev` と公開済み `v1.0.0-dev.1` は履歴として維持し、既存タグ・Release・添付ファイルを上書きしません。リモート履歴の強制上書きやリポジトリの再作成も行いません。
+
+`1.0.0-dev.2` は版表記の統一で、機能・修正は `1.0.0-dev.1` と同じです。新たな不具合修正や追加監査は主張しません。新コミットのCI成功後に別のPre-releaseとして公開します。
 
 ## 開発版の配布
 
@@ -22,8 +24,8 @@ python3 scripts/package.py
 
 Releaseへ添付する4ファイルは次のとおりです。
 
-- `fortress-security-ultimate-1.0.0-dev.1.zip`
-- `fortress-security-ultimate-1.0.0-dev.1-source.zip`
+- `fortress-security-ultimate-1.0.0-dev.2.zip`
+- `fortress-security-ultimate-1.0.0-dev.2-source.zip`
 - `SHA256SUMS`
 - `package-report.json`
 

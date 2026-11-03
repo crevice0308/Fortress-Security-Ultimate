@@ -37,7 +37,7 @@ python3 scripts/package.py
 python3 scripts/package.py --output /absolute/output/path
 ```
 
-生成物はインストール用 `fortress-security-ultimate-1.0.0-dev.1.zip`、ソース用 `fortress-security-ultimate-1.0.0-dev.1-source.zip`、`SHA256SUMS`、`package-report.json` です。
+生成物はインストール用 `fortress-security-ultimate-1.0.0-dev.2.zip`、ソース用 `fortress-security-ultimate-1.0.0-dev.2-source.zip`、`SHA256SUMS`、`package-report.json` です。
 
 収録ファイルの事前検証、出力先のシンボリックリンク検査、Windowsでも安全なアーカイブ内パス検証を行います。4成果物を一時領域へ生成・照合した後に出力へ反映することで、ソース検証の失敗による新旧配布物の混在を防ぎます。
 
@@ -49,7 +49,7 @@ python3 scripts/package.py --output /absolute/output/path
 
 現在の公開リポジトリは[crevice0308/Fortress-Security-Ultimate](https://github.com/crevice0308/Fortress-Security-Ultimate)です。変更を作業ブランチとPRで確認し、品質・互換性チェックを通してから反映します。
 
-CIの `phase1-prerelease` ジョブは、このリポジトリのmainへのpushかつコミットメッセージに`[publish phase1]`がある場合だけ動作します。品質・WordPress互換性ジョブの成功後に、対象コミットの版からタグ名を決め、現在は `v1.0.0-dev.1` を公開対象とします。Draft Releaseへ4成果物を添付し、名前・状態・サイズ・SHA-256を照合してからPre-releaseとして公開します。既存の `v1.0.0-dev` を含むタグ・Release・配布物は上書きせず、Stable版や本番決済を公開しません。
+CIの `phase1-prerelease` ジョブは、このリポジトリのmainへのpushかつコミットメッセージに`[publish phase1]`がある場合だけ動作します。品質・WordPress互換性ジョブの成功後に、対象コミットの版からタグ名を決め、現在は `v1.0.0-dev.2` を公開対象とします。Draft Releaseへ4成果物を添付し、名前・状態・サイズ・SHA-256を照合してからPre-releaseとして公開します。既存の `v1.0.0-dev`・`v1.0.0-dev.1` を含むタグ・Release・配布物は上書きせず、Stable版や本番決済を公開しません。
 
 CI設定が存在することとActionsが成功したことを分け、実行URL・結果を検証記録へ残します。再現・手動操作の詳細は[GitHub手順](github-setup.md)を参照してください。
 
@@ -58,3 +58,7 @@ CI設定が存在することとActionsが成功したことを分け、実行UR
 期限切れZIP・ログが残った状態でのエクスポート、保持中ログの保存、出力バッファー内の文字列、解除できないバッファー・圧縮状態、終了時の追加出力を確認します。配布生成では出力先シンボリックリンク、Windows形式の危険パス、後半でのソース検証失敗、初回開発版との版の違いを回帰試験に含めます。実行結果は検証記録に残し、過去のCIを今回の合格扱いにしません。
 
 出力整備は認可後かつZIP生成前に行います。削除可能・消去可能なバッファーはフラッシュせず破棄し、非互換状態は拒否します。ZIP転送後は当該要求でWordPressの通常フラッシュを抑止して追加文字列を破棄しますが、ほかの終了コールバックは停止しません。SAPIへの直接書き込み、意図的な出力制御変更、プロセス強制終了は保護の保証範囲外です。
+
+## 1.0.0-dev.2 の版表記
+
+現行の生成物は `1.0.0-dev.2` です。機能は `1.0.0-dev.1` と同じで、プラグイン表示・配布ZIP・ビルド情報・文書の版を揃えます。新しいコミットのCIを通して別のPre-releaseを公開し、旧版のタグ・添付物は変更しません。

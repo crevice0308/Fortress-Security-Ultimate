@@ -26,7 +26,7 @@ final class SettingsTest extends TestCase {
 	protected function setUp(): void {
 		self::$options = array();
 		if ( ! defined( 'FSU_VERSION' ) ) {
-			define( 'FSU_VERSION', '1.0.0-dev.1' );
+			define( 'FSU_VERSION', '1.0.0-dev.2' );
 		}
 		if ( ! defined( 'FSU_DIR' ) ) {
 			define( 'FSU_DIR', dirname( __DIR__ ) . '/' );
