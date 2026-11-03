@@ -1,0 +1,38 @@
+{
+  "name": "asterion-labs/fortress-security-ultimate",
+  "description": "Fortress Security Ultimate WordPress security plugin, Phase 1 development build.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=8.2 <8.6",
+    "ext-json": "*"
+  },
+  "require-dev": {
+    "php-stubs/wordpress-stubs": ">=6.8 <8.0",
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.5",
+    "squizlabs/php_codesniffer": "^3.13",
+    "wp-coding-standards/wpcs": "^3.2"
+  },
+  "autoload": {
+    "psr-4": { "Fortress\\Security\\": "src/" }
+  },
+  "autoload-dev": {
+    "psr-4": { "Fortress\\Security\\Tests\\": "tests/" }
+  },
+  "config": {
+    "allow-plugins": false,
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit",
+    "test:package": "python3 scripts/test_package.py",
+    "lint": "@php scripts/lint.php",
+    "stan": "phpstan analyse --no-progress --memory-limit=512M",
+    "cs": "phpcs",
+    "cs:fix": "phpcbf",
+    "audit:dependencies": "@composer audit --locked",
+    "check": ["@lint", "@test", "@test:package", "@stan", "@cs", "@audit:dependencies"],
+    "package": "python3 scripts/package.py"
+  }
+}

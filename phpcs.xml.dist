@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<ruleset name="Fortress Security Ultimate">
+    <description>WordPress standards with PSR-4 names and PHP 8.2 syntax.</description>
+    <config name="installed_paths" value="vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra"/>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <file>fortress-security-ultimate.php</file>
+    <file>src</file>
+    <file>tests</file>
+    <file>scripts</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <rule ref="WordPress">
+        <!-- Class/file names follow PSR-4 for the dependency-free autoloader. -->
+        <exclude name="WordPress.Files.FileName"/>
+        <exclude name="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid"/>
+    </rule>
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array"><element value="fortress-security-ultimate"/></property>
+        </properties>
+    </rule>
+</ruleset>
