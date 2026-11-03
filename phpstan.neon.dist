@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    paths:
+        - src
+        - fortress-security-ultimate.php
+    scanFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    bootstrapFiles:
+        - scripts/phpstan-bootstrap.php
+    # wp-config.php can enable or omit the filesystem recovery switch at runtime.
+    dynamicConstantNames:
+        - FSU_SAFE_MODE
+    tmpDir: .phpstan-cache
+    treatPhpDocTypesAsCertain: false

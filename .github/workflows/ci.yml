@@ -1,0 +1,198 @@
+name: Phase 1 quality and WordPress integration
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fsu-ci-${{ github.workflow }}-${{ github.ref }}
+  # Publishing is several API requests; do not cancel between tag/assets/publication.
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: PHP ${{ matrix.php }} quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2, verified 2026-11-03
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring, xml, dom, zip
+          coverage: none
+          tools: composer:v2
+      - run: composer validate --strict
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: composer check
+      - name: Build development archives
+        run: python3 scripts/package.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fsu-dev-php-${{ matrix.php }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  wordpress:
+    name: WordPress ${{ matrix.wp }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        wp: ['7.0.8', '7.1.4']
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: fsu-local-ci-only
+          MYSQL_DATABASE: wordpress
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pfsu-local-ci-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2, verified 2026-11-03
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, json, mbstring, xml, dom, zip
+          coverage: none
+          tools: wp-cli
+      - name: Install isolated WordPress
+        env:
+          WP_VERSION: ${{ matrix.wp }}
+        run: |
+          wp core download --version="$WP_VERSION" --path=/tmp/fsu-wordpress --force
+          wp config create --path=/tmp/fsu-wordpress --dbname=wordpress --dbuser=root --dbpass=fsu-local-ci-only --dbhost=127.0.0.1
+          wp config set FSU_PRIVATE_DIR /tmp/fsu-ci-private --type=constant --path=/tmp/fsu-wordpress
+          wp core install --path=/tmp/fsu-wordpress --url=http://localhost:8080 --title=FSU-CI --admin_user=fsu-admin --admin_password=fsu-disposable-ci-password --admin_email=ci@example.invalid --skip-email
+          python3 scripts/package.py
+          unzip -q dist/fortress-security-ultimate-1.0.0-dev.zip -d /tmp/fsu-wordpress/wp-content/plugins
+          wp plugin activate fortress-security-ultimate --path=/tmp/fsu-wordpress
+      - name: Real WordPress integration smoke
+        run: wp eval-file "$GITHUB_WORKSPACE/scripts/wp-smoke.php" --path=/tmp/fsu-wordpress
+      - name: Out-of-dashboard safe mode
+        run: wp --exec='define("FSU_SAFE_MODE", true);' eval 'if (!\Fortress\Security\Settings::safe_mode()) { throw new RuntimeException("Safe mode constant ignored"); } echo "Safe mode constant OK\n";' --path=/tmp/fsu-wordpress
+      - name: Deactivation preserves unrelated site behavior
+        run: |
+          wp plugin deactivate fortress-security-ultimate --path=/tmp/fsu-wordpress
+          wp eval 'if (wp_next_scheduled("fsu_prune_logs")) { throw new RuntimeException("Cleanup was not unscheduled"); } echo "Deactivation OK\n";' --path=/tmp/fsu-wordpress
+      - name: Multisite activation is explicitly refused in Phase 1
+        run: |
+          wp core multisite-convert --path=/tmp/fsu-wordpress --title=FSU-CI-Network --base=/
+          if wp plugin activate fortress-security-ultimate --network --path=/tmp/fsu-wordpress; then
+            echo "Unexpected activation on an unsupported multisite installation"
+            exit 1
+          fi
+          wp eval 'if (is_plugin_active_for_network("fortress-security-ultimate/fortress-security-ultimate.php")) { throw new RuntimeException("Multisite plugin unexpectedly active"); } echo "Multisite refusal OK\n";' --path=/tmp/fsu-wordpress
+
+  phase1-prerelease:
+    name: Publish explicitly requested Phase 1 development pre-release
+    needs: [quality, wordpress]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'crevice0308/Fortress-Security-Ultimate' &&
+      contains(github.event.head_commit.message, '[publish phase1]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Build exact tested commit without uncommitted package bytes
+        env:
+          FSU_COMMIT: ${{ github.sha }}
+        run: |
+          python3 scripts/package.py --require-clean --expected-commit "$FSU_COMMIT"
+          (cd dist && sha256sum --check SHA256SUMS)
+          python3 - "$FSU_COMMIT" <<'PY'
+          import hashlib, json, pathlib, sys, zipfile
+          root = pathlib.Path('dist')
+          report = json.loads((root / 'package-report.json').read_text())
+          build = report['build']
+          assert build['git_commit'] == sys.argv[1]
+          assert build['version'] == '1.0.0-dev' and build['channel'] == 'dev'
+          assert build['stable'] is False and build['working_tree_dirty'] is False
+          expected = {'fortress-security-ultimate-1.0.0-dev.zip', 'fortress-security-ultimate-1.0.0-dev-source.zip'}
+          assert {item['filename'] for item in report['archives']} == expected
+          for item in report['archives']:
+              archive = root / item['filename']
+              assert hashlib.sha256(archive.read_bytes()).hexdigest() == item['sha256']
+              with zipfile.ZipFile(archive) as zipped:
+                  assert zipped.testzip() is None
+                  assert json.loads(zipped.read('fortress-security-ultimate/build-info.json')) == build
+          print('Exact-commit development archives verified')
+          PY
+      - name: Refuse existing tags and releases, then publish development assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: crevice0308/Fortress-Security-Ultimate
+          FSU_COMMIT: ${{ github.sha }}
+          FSU_TAG: v1.0.0-dev
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'echo "Publication stopped. Any partial tag or draft requires review; existing objects are never overwritten." >> "$GITHUB_STEP_SUMMARY"' ERR
+          actual_repo="$(gh api "repos/$GH_REPO" --jq .full_name)"
+          [[ "$actual_repo" == "$GH_REPO" ]]
+          current_main="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)"
+          [[ "$current_main" == "$FSU_COMMIT" ]]
+          for endpoint in "repos/$GH_REPO/releases/tags/$FSU_TAG" "repos/$GH_REPO/git/ref/tags/$FSU_TAG"; do
+            response="$RUNNER_TEMP/fsu-release-preflight-response"
+            if gh api --include "$endpoint" > "$response" 2> "$RUNNER_TEMP/fsu-release-preflight-error"; then
+              echo "Refusing to replace an existing release or tag."
+              exit 1
+            fi
+            status="$(head -n 1 "$response" | awk '{print $2}' | tr -d '\r')"
+            if [[ "$status" != '404' ]]; then
+              echo "Release preflight failed; only an authenticated HTTP 404 permits creation."
+              exit 1
+            fi
+          done
+          # Creating a Git ref is atomic and fails if another publisher won the race.
+          created_sha="$(gh api --method POST "repos/$GH_REPO/git/refs" -f "ref=refs/tags/$FSU_TAG" -f "sha=$FSU_COMMIT" --jq .object.sha)"
+          [[ "$created_sha" == "$FSU_COMMIT" ]]
+          gh release create "$FSU_TAG" \
+            --repo "$GH_REPO" \
+            --verify-tag \
+            --target "$FSU_COMMIT" \
+            --prerelease \
+            --latest=false \
+            --title 'Fortress Security Ultimate v1.0.0-dev — Phase 1 Pre-release' \
+            --notes-file docs/release-notes.md \
+            dist/fortress-security-ultimate-1.0.0-dev.zip \
+            dist/fortress-security-ultimate-1.0.0-dev-source.zip \
+            dist/SHA256SUMS \
+            dist/package-report.json
+          published_sha="$(gh api "repos/$GH_REPO/git/ref/tags/$FSU_TAG" --jq .object.sha)"
+          [[ "$published_sha" == "$FSU_COMMIT" ]]
+          gh api "repos/$GH_REPO/releases/tags/$FSU_TAG" > "$RUNNER_TEMP/fsu-published-release.json"
+          python3 - "$RUNNER_TEMP/fsu-published-release.json" <<'PY'
+          import hashlib, json, pathlib, sys
+          release = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert release['prerelease'] is True and release['draft'] is False
+          assert release['tag_name'] == 'v1.0.0-dev'
+          expected = {'fortress-security-ultimate-1.0.0-dev.zip', 'fortress-security-ultimate-1.0.0-dev-source.zip', 'SHA256SUMS', 'package-report.json'}
+          assert {item['name'] for item in release['assets']} == expected
+          assert all(item['state'] == 'uploaded' for item in release['assets'])
+          for asset in release['assets']:
+              local = pathlib.Path('dist') / asset['name']
+              assert asset['size'] == local.stat().st_size
+              assert asset['digest'] == 'sha256:' + hashlib.sha256(local.read_bytes()).hexdigest()
+          print(release['html_url'])
+          PY
+          echo "Published Phase 1 development pre-release from tested commit $FSU_COMMIT." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,17 @@
+/vendor/
+/dist/
+/.phpstan-cache/
+/.phpunit.cache/
+/.phpunit.result.cache
+.env
+.env.*
+!.env.example
+*.log
+*.jsonl
+*.zip
+/build-info.json
+/wp-test/
+/wp-private/
+
+__pycache__/
+*.pyc
