@@ -1,16 +1,16 @@
 # GitHub運用
 
-ユーザーが作成した公開リポジトリ [crevice0308/Fortress-Security-Ultimate](https://github.com/crevice0308/Fortress-Security-Ultimate) を使用します。Phase 1ソースと開発版Pre-releaseの公開は承認済みです。これはStable公開・本番決済・販売開始の承認を意味しません。
+公開リポジトリ [crevice0308/Fortress-Security-Ultimate](https://github.com/crevice0308/Fortress-Security-Ultimate) を使用します。Phase 1ソースと開発版Pre-releaseの公開は承認済みです。Stable公開・本番決済・販売開始は対象外です。
 
 ## 開発の流れ
 
 1. リモートの最新状態と既存ブランチ・PRを確認する。
-2. 作業ブランチ `feat/phase-1-prerelease` でソース、テスト、ドキュメントを管理する。
-3. シークレットを含めず、ローカル検証とセキュリティ・不具合レビューを実施する。
-4. レビュー可能なPRを作成し、実際のCI結果と未検証範囲を記録する。
-5. 開発版を公開するときは `v1.0.0-dev` のPre-releaseを使う。
+2. 作業ブランチで修正・回帰試験・ドキュメントを管理する。
+3. ローカル検証とセキュリティ・不具合レビューを行い、シークレットの混入を確認する。
+4. レビュー可能なPRと実際のCI結果を記録する。
+5. 品質・互換性チェック成功後に、対象コミットから開発版を公開する。
 
-リモート履歴の強制上書きや、公開リポジトリの再作成は行いません。PR番号・コミットSHA・Actions結果は、実在する値を確認して報告します。
+現在の更新は `1.0.0-dev.1`、予定タグは `v1.0.0-dev.1` です。初回の `v1.0.0-dev` は履歴として維持し、既存タグ・Release・添付ファイルを上書きしません。リモート履歴の強制上書きやリポジトリの再作成も行いません。
 
 ## 開発版の配布
 
@@ -20,9 +20,26 @@ composer check
 python3 scripts/package.py
 ```
 
-Releaseへ添付する対象は、インストール用 `fortress-security-ultimate-1.0.0-dev.zip`、ソース用 `fortress-security-ultimate-1.0.0-dev-source.zip`、`SHA256SUMS`、`package-report.json` です。公開前にアーカイブの内容・版・コミット・秘密情報の混入を確認します。
+Releaseへ添付する4ファイルは次のとおりです。
 
-`v1.0.0-dev` はPre-releaseとして扱い、Latest Stableに指定しません。リリース本文には実装範囲、検証結果、未実装機能、容量制限、対応環境を記載します。公開実施前に、予定URLだけを根拠として公開済みと記載しません。
+- `fortress-security-ultimate-1.0.0-dev.1.zip`
+- `fortress-security-ultimate-1.0.0-dev.1-source.zip`
+- `SHA256SUMS`
+- `package-report.json`
+
+ローカル生成では、出力パスのシンボリックリンクと危険なアーカイブ内パスを拒否します。収録ファイルを事前検証し、4成果物を一時領域へ生成・照合してから出力先へ反映します。ソース検証の失敗で新旧の配布ファイルが混在する状態を防ぎます。
+
+## 公開ジョブ
+
+mainへのpushかつコミットメッセージに `[publish phase1]` がある場合のみ、品質・WordPress互換性ジョブの成功後に公開ジョブを実行します。版は対象コミットの開発版情報から取得し、RC・Stableは扱いません。
+
+1. 作業ツリーがクリーンで、収録バイトとファイル名が対象コミットに一致することを確認する。
+2. 同じタグ・Releaseが存在しないことと、対象コミットを確認する。
+3. 新しいタグとDraft Releaseを作り、4成果物をアップロードする。
+4. 添付ファイル名、完了状態、サイズ、SHA-256をローカル成果物と照合する。
+5. 照合成功後にDraftを解除し、Pre-releaseとして公開する。Latest Stableには指定しない。
+
+途中失敗時は、部分的なタグやDraftを既存オブジェクトとして残し、自動上書きせず状態を調べます。公開実施前に、予定URLだけを根拠として公開済みと記載しません。
 
 - [ソース](https://github.com/crevice0308/Fortress-Security-Ultimate)
 - [Pull requests](https://github.com/crevice0308/Fortress-Security-Ultimate/pulls)
@@ -31,4 +48,4 @@ Releaseへ添付する対象は、インストール用 `fortress-security-ultim
 
 ## 記録
 
-ローカルの実行結果と環境制約は `docs/verification.md`、変更内容は `CHANGELOG.md` に残します。CIマトリクス全体の結果は、Actionsが実際に完了してから反映します。ブラウザー描画、正式販売、外部API、本番決済など未実施の項目を、CIの合格とまとめないでください。
+修正・ローカル実行結果・環境制約は `docs/verification.md`、変更履歴は `CHANGELOG.md` に記録します。過去のCI成功は、その版の記録として保持します。新しい版の結果は新しいActions実行が完了してから反映します。実在するPR番号・コミットSHA・実行URLを確認して報告します。

@@ -6,7 +6,7 @@ Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-WordPress・PHP環境診断と安全な構造化ログの基盤。1.0.0-dev・Phase 1 Pre-release。
+WordPress・PHP環境診断と安全な構造化ログの基盤。1.0.0-dev.1・Phase 1 Pre-release。
 
 == Description ==
 開発版Pre-releaseです。日本語ダッシュボード、読み取り専用診断、秘密情報を除外するJSONLログ、管理者向け診断ZIP、設定復元・セーフモードを提供します。
@@ -17,7 +17,7 @@ Stable・本番防御・商用販売版ではありません。外部サービ�
 https://github.com/crevice0308/Fortress-Security-Ultimate
 
 == Installation ==
-ReleaseのAssetsからfortress-security-ultimate-1.0.0-dev.zipを取得し、隔離WordPress環境のプラグイン画面へアップロードして有効化します。
+ReleaseのAssetsからfortress-security-ultimate-1.0.0-dev.1.zipを取得し、隔離WordPress環境のプラグイン画面へアップロードして有効化します。
 -source.zipやGitHub自動生成のSource code ZIPは開発用です。
 必要に応じてwp-config.phpのFSU_PRIVATE_DIRでWeb公開領域外の専用保存先を指定してください。
 詳しい手順は公開リポジトリのREADME.mdと開発資料を参照してください。
@@ -30,6 +30,9 @@ ZIPのJSONL内容は最大16 MiBで、打切りはmanifestへ記録します。Z
 ログは全イベントを損失なく記録するものではありません。
 
 == Changelog ==
+= 1.0.0-dev.1 =
+期限切れファイルの容量判定、出力バッファーによる診断ZIP破損、配布生成のパスと検証失敗時の整合性を修正。Draftで添付ファイルを検証してから開発版を公開する手順へ更新。旧タグ・配布物は維持します。
+
 = 1.0.0-dev =
 Phase 1基盤の初回Pre-release。診断・非公開ログ・管理画面・復旧・開発検証ツールを追加。
 実行済みテスト・監査修正・未検証範囲はdocs/verification.mdを参照してください。

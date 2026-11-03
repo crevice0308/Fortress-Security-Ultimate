@@ -147,6 +147,7 @@ final class Dashboard {
 		}
 		$path = null;
 		try {
+			ZipDownload::prepare_response();
 			$environment                      = Environment::collect( true );
 			$environment['version']           = FSU_VERSION;
 			$environment['channel']           = 'dev';
@@ -170,7 +171,14 @@ final class Dashboard {
 			header( 'Content-Length: ' . $download['size'] );
 			header( 'X-Content-Type-Options: nosniff' );
 			header( 'Cache-Control: private, no-store, max-age=0' );
-			if ( ZipDownload::send( $download['stream'], $download['size'] ) ) {
+			$sent = ZipDownload::send( $download['stream'], $download['size'] );
+			// Keep ordinary WordPress/plugin shutdown output out of the binary body.
+			// This exclusive download response has already discarded its earlier buffers.
+			remove_action( 'shutdown', 'wp_ob_end_flush_all', 1 );
+			if ( ! ZipDownload::discard_following_output() ) {
+				$this->logger->log( 'Error', 'internal', 'internal.error' );
+			}
+			if ( $sent ) {
 				$this->logger->log( 'Info', 'admin', 'logs.exported', array( 'range_hours' => (int) $hours ) );
 			} else {
 				$this->logger->log( 'Error', 'internal', 'internal.error' );

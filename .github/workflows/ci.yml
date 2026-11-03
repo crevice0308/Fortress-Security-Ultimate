@@ -23,7 +23,9 @@ jobs:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, verified 2026-11-03
+        with:
+          persist-credentials: false
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2, verified 2026-11-03
         with:
           php-version: ${{ matrix.php }}
@@ -35,7 +37,7 @@ jobs:
       - run: composer check
       - name: Build development archives
         run: python3 scripts/package.py
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1, verified 2026-11-03
         with:
           name: fsu-dev-php-${{ matrix.php }}
           path: dist/
@@ -61,7 +63,9 @@ jobs:
           --health-cmd="mysqladmin ping -h 127.0.0.1 -pfsu-local-ci-only"
           --health-interval=10s --health-timeout=5s --health-retries=10
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, verified 2026-11-03
+        with:
+          persist-credentials: false
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2, verified 2026-11-03
         with:
           php-version: ${{ matrix.php }}
@@ -77,10 +81,17 @@ jobs:
           wp config set FSU_PRIVATE_DIR /tmp/fsu-ci-private --type=constant --path=/tmp/fsu-wordpress
           wp core install --path=/tmp/fsu-wordpress --url=http://localhost:8080 --title=FSU-CI --admin_user=fsu-admin --admin_password=fsu-disposable-ci-password --admin_email=ci@example.invalid --skip-email
           python3 scripts/package.py
-          unzip -q dist/fortress-security-ultimate-1.0.0-dev.zip -d /tmp/fsu-wordpress/wp-content/plugins
+          version="$(python3 scripts/package.py --print-version)"
+          unzip -q "dist/fortress-security-ultimate-$version.zip" -d /tmp/fsu-wordpress/wp-content/plugins
           wp plugin activate fortress-security-ultimate --path=/tmp/fsu-wordpress
       - name: Real WordPress integration smoke
         run: wp eval-file "$GITHUB_WORKSPACE/scripts/wp-smoke.php" --path=/tmp/fsu-wordpress
+      - name: Exact HTTP ZIP output and export authorization regressions
+        env:
+          FSU_TEST_PASSWORD: fsu-disposable-ci-password
+        run: |
+          wp config set FSU_ISOLATED_TEST true --raw --type=constant --path=/tmp/fsu-wordpress
+          python3 scripts/test_http_export.py --wp-path /tmp/fsu-wordpress
       - name: Out-of-dashboard safe mode
         run: wp --exec='define("FSU_SAFE_MODE", true);' eval 'if (!\Fortress\Security\Settings::safe_mode()) { throw new RuntimeException("Safe mode constant ignored"); } echo "Safe mode constant OK\n";' --path=/tmp/fsu-wordpress
       - name: Deactivation preserves unrelated site behavior
@@ -109,25 +120,28 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, verified 2026-11-03
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Build exact tested commit without uncommitted package bytes
+        id: build
         env:
           FSU_COMMIT: ${{ github.sha }}
         run: |
+          version="$(python3 scripts/package.py --print-version)"
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
           python3 scripts/package.py --require-clean --expected-commit "$FSU_COMMIT"
           (cd dist && sha256sum --check SHA256SUMS)
-          python3 - "$FSU_COMMIT" <<'PY'
+          python3 - "$FSU_COMMIT" "$version" <<'PY'
           import hashlib, json, pathlib, sys, zipfile
           root = pathlib.Path('dist')
           report = json.loads((root / 'package-report.json').read_text())
           build = report['build']
           assert build['git_commit'] == sys.argv[1]
-          assert build['version'] == '1.0.0-dev' and build['channel'] == 'dev'
+          assert build['version'] == sys.argv[2] and build['channel'] == 'dev'
           assert build['stable'] is False and build['working_tree_dirty'] is False
-          expected = {'fortress-security-ultimate-1.0.0-dev.zip', 'fortress-security-ultimate-1.0.0-dev-source.zip'}
+          expected = {f'fortress-security-ultimate-{sys.argv[2]}.zip', f'fortress-security-ultimate-{sys.argv[2]}-source.zip'}
           assert {item['filename'] for item in report['archives']} == expected
           for item in report['archives']:
               archive = root / item['filename']
@@ -142,15 +156,38 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: crevice0308/Fortress-Security-Ultimate
           FSU_COMMIT: ${{ github.sha }}
-          FSU_TAG: v1.0.0-dev
+          FSU_VERSION: ${{ steps.build.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
+          FSU_TAG="v$FSU_VERSION"
           trap 'echo "Publication stopped. Any partial tag or draft requires review; existing objects are never overwritten." >> "$GITHUB_STEP_SUMMARY"' ERR
           actual_repo="$(gh api "repos/$GH_REPO" --jq .full_name)"
           [[ "$actual_repo" == "$GH_REPO" ]]
           current_main="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)"
           [[ "$current_main" == "$FSU_COMMIT" ]]
+          release_lookup() {
+            # Authenticated listing includes drafts; the tag endpoint describes
+            # published releases and must not be used to locate a new draft.
+            gh api --paginate --slurp "repos/$GH_REPO/releases?per_page=100" > "$RUNNER_TEMP/fsu-release-list.json" || return "$?"
+            python3 - "$RUNNER_TEMP/fsu-release-list.json" "$FSU_TAG" <<'PY'
+          import json, pathlib, sys
+          pages = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          matches = [release for page in pages for release in page if release['tag_name'] == sys.argv[2]]
+          assert len(matches) <= 1
+          if matches:
+              identifier = matches[0]['id']
+              assert type(identifier) is int and identifier > 0
+              print(identifier)
+          else:
+              print(0)
+          PY
+          }
+          existing_id="$(release_lookup)"
+          if [[ "$existing_id" != '0' ]]; then
+            echo "Refusing to replace an existing published or draft release."
+            exit 1
+          fi
           for endpoint in "repos/$GH_REPO/releases/tags/$FSU_TAG" "repos/$GH_REPO/git/ref/tags/$FSU_TAG"; do
             response="$RUNNER_TEMP/fsu-release-preflight-response"
             if gh api --include "$endpoint" > "$response" 2> "$RUNNER_TEMP/fsu-release-preflight-error"; then
@@ -170,23 +207,27 @@ jobs:
             --repo "$GH_REPO" \
             --verify-tag \
             --target "$FSU_COMMIT" \
+            --draft \
             --prerelease \
             --latest=false \
-            --title 'Fortress Security Ultimate v1.0.0-dev — Phase 1 Pre-release' \
+            --title "Fortress Security Ultimate v$FSU_VERSION — Phase 1 Pre-release" \
             --notes-file docs/release-notes.md \
-            dist/fortress-security-ultimate-1.0.0-dev.zip \
-            dist/fortress-security-ultimate-1.0.0-dev-source.zip \
+            "dist/fortress-security-ultimate-$FSU_VERSION.zip" \
+            "dist/fortress-security-ultimate-$FSU_VERSION-source.zip" \
             dist/SHA256SUMS \
             dist/package-report.json
-          published_sha="$(gh api "repos/$GH_REPO/git/ref/tags/$FSU_TAG" --jq .object.sha)"
-          [[ "$published_sha" == "$FSU_COMMIT" ]]
-          gh api "repos/$GH_REPO/releases/tags/$FSU_TAG" > "$RUNNER_TEMP/fsu-published-release.json"
-          python3 - "$RUNNER_TEMP/fsu-published-release.json" <<'PY'
+          release_id="$(release_lookup)"
+          [[ "$release_id" =~ ^[1-9][0-9]*$ ]]
+          verify_release() {
+            gh api "repos/$GH_REPO/releases/$release_id" > "$RUNNER_TEMP/fsu-published-release.json"
+            python3 - "$RUNNER_TEMP/fsu-published-release.json" "$FSU_VERSION" "$1" <<'PY'
           import hashlib, json, pathlib, sys
           release = json.loads(pathlib.Path(sys.argv[1]).read_text())
-          assert release['prerelease'] is True and release['draft'] is False
-          assert release['tag_name'] == 'v1.0.0-dev'
-          expected = {'fortress-security-ultimate-1.0.0-dev.zip', 'fortress-security-ultimate-1.0.0-dev-source.zip', 'SHA256SUMS', 'package-report.json'}
+          version = sys.argv[2]
+          assert release['prerelease'] is True
+          assert release['draft'] is (sys.argv[3] == 'true')
+          assert release['tag_name'] == 'v' + version
+          expected = {f'fortress-security-ultimate-{version}.zip', f'fortress-security-ultimate-{version}-source.zip', 'SHA256SUMS', 'package-report.json'}
           assert {item['name'] for item in release['assets']} == expected
           assert all(item['state'] == 'uploaded' for item in release['assets'])
           for asset in release['assets']:
@@ -195,4 +236,12 @@ jobs:
               assert asset['digest'] == 'sha256:' + hashlib.sha256(local.read_bytes()).hexdigest()
           print(release['html_url'])
           PY
+          }
+          # Verify every uploaded byte while the release is still private.
+          verify_release true
+          tag_sha="$(gh api "repos/$GH_REPO/git/ref/tags/$FSU_TAG" --jq .object.sha)"
+          [[ "$tag_sha" == "$FSU_COMMIT" ]]
+          gh api --method PATCH "repos/$GH_REPO/releases/$release_id" \
+            -F draft=false -F prerelease=true -f make_latest=false --silent
+          verify_release false
           echo "Published Phase 1 development pre-release from tested commit $FSU_COMMIT." >> "$GITHUB_STEP_SUMMARY"

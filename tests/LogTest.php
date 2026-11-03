@@ -493,6 +493,104 @@ final class LogTest extends TestCase {
 	}
 
 	/**
+	 * Expired artifacts must not starve exports while current input is retained.
+	 *
+	 * @return void
+	 */
+	public function test_expired_artifacts_are_reclaimed_before_export_quota_check(): void {
+		if ( ! class_exists( '\\ZipArchive' ) ) {
+			self::markTestSkipped( 'PHP ZIP extension is required.' );
+		}
+		foreach ( array( 'export', 'hourly' ) as $kind ) {
+			$logger = new Logger( $this->base . '/private-' . $kind, array( $this->base . '/web' ), true, array(), 524288, fn(): int => $this->now );
+			self::assertTrue( $logger->log( 'info', 'system', 'plugin.boot' ) );
+			$input  = $logger->files()[0];
+			$before = file_get_contents( $input );
+			$stale  = 'export' === $kind ? $logger->directory() . '/export-' . str_repeat( 'a', 32 ) . '.zip' : $logger->directory() . '/fsu-' . gmdate( 'Ymd-H', $this->now - 169 * 3600 ) . '.jsonl';
+			file_put_contents( $stale, str_repeat( 'x', 400000 ) );
+			touch( $stale, $this->now - 901 );
+			$path = ( new Exporter( $logger ) )->build( 1, array() );
+			self::assertFileDoesNotExist( $stale );
+			self::assertSame( $before, file_get_contents( $input ) );
+			$zip = new \ZipArchive();
+			self::assertTrue( $zip->open( $path ) );
+			$manifest = json_decode( $zip->getFromName( 'manifest.json' ), true, 8, JSON_THROW_ON_ERROR );
+			self::assertSame( 1, $manifest['records'] );
+			self::assertFalse( $manifest['truncated'] );
+			$zip->close();
+		}
+	}
+
+	/**
+	 * An export reservation must not remove current logs when capacity is full.
+	 *
+	 * @return void
+	 */
+	public function test_full_retained_storage_rejects_export_without_deleting_input(): void {
+		if ( ! class_exists( '\\ZipArchive' ) ) {
+			self::markTestSkipped( 'PHP ZIP extension is required.' );
+		}
+		$logger = $this->logger( true, array(), 524288 );
+		self::assertTrue( $logger->log( 'info', 'system', 'plugin.boot' ) );
+		$input  = $logger->files()[0];
+		$line   = file_get_contents( $input );
+		$before = str_repeat( $line, intdiv( 400000, strlen( $line ) ) );
+		file_put_contents( $input, $before );
+		try {
+			( new Exporter( $logger ) )->build( 1, array() );
+			self::fail( 'An export without enough free capacity was accepted.' );
+		} catch ( \RuntimeException $error ) {
+			self::assertStringContainsString( 'without deleting retained logs', $error->getMessage() );
+		}
+		self::assertSame( $before, file_get_contents( $input ) );
+		self::assertCount( 1, $logger->files() );
+	}
+
+	/**
+	 * Accept bounded development counters without admitting arbitrary metadata.
+	 *
+	 * @return void
+	 */
+	public function test_development_version_counters_are_strictly_validated(): void {
+		foreach ( array( '1.0.0', '1.0.0-dev', '1.0.0-dev.1', '1.0.0-dev.999', '1.0.0-rc.1' ) as $version ) {
+			self::assertSame( array( 'version' => $version ), Redactor::context( array( 'version' => $version ) ) );
+		}
+		foreach ( array( '1.0.0-dev.0', '1.0.0-dev.01', '1.0.0-dev.1000', '1.0.0-dev.-1', '1.0.0-dev.1secret', '1.0.0-dev.1+secret' ) as $version ) {
+			self::assertSame( array(), Redactor::context( array( 'version' => $version ) ) );
+		}
+	}
+
+	/**
+	 * Updated development versions survive each projected export metadata layer.
+	 *
+	 * @return void
+	 */
+	public function test_incremented_development_version_survives_export_metadata(): void {
+		if ( ! class_exists( '\\ZipArchive' ) ) {
+			self::markTestSkipped( 'PHP ZIP extension is required.' );
+		}
+		$logger = $this->logger();
+		self::assertTrue( $logger->log( 'info', 'system', 'plugin.boot', array( 'version' => '1.0.0-dev.1' ) ) );
+		$path = ( new Exporter( $logger ) )->build(
+			1,
+			array(
+				'version' => '1.0.0-dev.1',
+				'channel' => 'dev',
+			)
+		);
+		$zip  = new \ZipArchive();
+		self::assertTrue( $zip->open( $path ) );
+		$environment = json_decode( $zip->getFromName( 'environment.json' ), true, 8, JSON_THROW_ON_ERROR );
+		$manifest    = json_decode( $zip->getFromName( 'manifest.json' ), true, 8, JSON_THROW_ON_ERROR );
+		self::assertSame( '1.0.0-dev.1', $environment['version'] );
+		self::assertSame( '1.0.0-dev.1', $manifest['build']['version'] );
+		self::assertSame( 1, $manifest['records'] );
+		$record = json_decode( trim( $zip->getFromName( $manifest['entries'][0]['path'] ) ), true, 8, JSON_THROW_ON_ERROR );
+		self::assertSame( '1.0.0-dev.1', $record['context']['version'] );
+		$zip->close();
+	}
+
+	/**
 	 * Verify export rejects unrecognized time window.
 	 *
 	 * @return void
