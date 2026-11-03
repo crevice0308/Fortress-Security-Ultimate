@@ -76,7 +76,7 @@ wp cron event run fsu_prune_logs --path=/absolute/path/to/wordpress
 | ローカル実行確認済み | PHP 8.3.6（ディストリビューション版）・MariaDB 10.11.14・WordPress 7.1.4 |
 | 実WordPress確認 | 有効化・管理画面・診断・設定・復旧・ZIPなどのスモークテスト。HTTP 200、nonce不正時403、ZIPメタデータを確認 |
 | CI設定上の対象 | PHP 8.2 / 8.3 / 8.4 / 8.5 × WordPress 7.0.8 / 7.1.4 |
-| CI全組み合わせの実行結果 | 未確認。実際の結果はActionsと検証記録で確認 |
+| CI全組み合わせの実行結果 | PHP品質4件・WordPress互換性8件がすべて成功。[実行記録](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704) |
 | ブラウザー表示 | モバイル用CSSは実装。実ブラウザーでの描画確認は未完了 |
 
 PHPUnit、PHPStan、WordPress Coding Standards、依存監査、配布テストの件数・結果と監査での修正内容は [検証記録](docs/verification.md) を参照してください。CI設定の存在を、全環境での合格として扱いません。

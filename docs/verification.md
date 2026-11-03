@@ -7,7 +7,7 @@
 - PHP 8.3.6（Ubuntu提供ビルド、隔離した開発・検証専用）
 - WordPress 7.1.4 / MariaDB 10.11.14
 - PHPUnit 11.5.57 / PHPStan level 5 / WordPress Coding Standards（WPCS 3.4.1）
-- CIの対象候補：PHP 8.2、8.3、8.4、8.5 × WordPress 7.0.8、7.1.4。実行済みと区別します。
+- GitHub CI実行確認済み：PHP 8.2、8.3、8.4、8.5の品質チェック、およびWordPress 7.0.8、7.1.4との8組み合わせ。
 
 ## 実行済みの結果
 
@@ -52,7 +52,7 @@
 
 ## 未検証・未実装
 
-- PHP 8.2 / 8.4 / 8.5、WordPress 7.0.8、Windows、共有ホスティングでの実機テスト。
+- Windows、共有ホスティングでの実機テスト。GitHub Linux runnerの対象マトリクスは下記CIで確認済みです。
 - 実ブラウザーのデスクトップ・モバイル描画。レスポンシブCSSは実装済みですが、この環境ではChromiumの配布先が利用できず、画面描画試験は未実施です。
 - WAF、脆弱性フィード、コアチェックサム、改ざん監視、Cloudflare、Stripe、ライセンス、署名付き更新API。これらのセキュリティ試験は対応機能を実装してから行います。
 - 診断本文のgettextへの接続と英語カタログ。管理UIの翻訳文字列と診断IDの分離はありますが、英語対応は完了していません。
@@ -84,3 +84,16 @@
 公開ジョブは明示したmain pushだけで動作し、テスト済みの同じコミットから`v1.0.0-dev`をPre-releaseかつ最新正式版ではない設定で作成します。タグ・既存Releaseを上書きしません。Gitコミットと配布ハッシュはReleaseの`package-report.json`と`SHA256SUMS`で確認できます。公開処理の制御は、成功・既存タグ・既存Release・認証/通信失敗・タグ作成競合・main更新競合の6ケースを模擬検証しました。
 
 今回の承認範囲はPhase 1のPre-release公開です。RC・Stable・正式販売・本番決済は実施しません。次はPhase 2のWAFと誤検知・復旧試験です。
+
+## GitHub CI確認結果
+
+[PR #1](https://github.com/crevice0308/Fortress-Security-Ultimate/pull/1)の[実行41604028704](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704)を確認しました。コードのコミットは`c67c3562ac31c73b39622945e6d6883886ce52be`です。
+
+| ジョブ | 結果 |
+| --- | --- |
+| PHP 8.2 / 8.3 / 8.4 / 8.5 品質（4件） | 全成功 |
+| WordPress 7.0.8 × PHP 8.2 / 8.3 / 8.4 / 8.5（4件） | 全成功 |
+| WordPress 7.1.4 × PHP 8.2 / 8.3 / 8.4 / 8.5（4件） | 全成功 |
+| PR上の公開ジョブ | 条件によりスキップ（正常） |
+
+品質ジョブではPHP構文、37件のPHPUnit・232アサーション、13件の配布回帰テスト、PHPStan level5、WPCS、依存監査を実行しました。WordPressジョブでは実際のWordPress・MySQLを起動し、統合スモーク、セーフモード、無効化、Multisite有効化の拒否が成功しました。今回追加した文書結果の反映後も、公開するmainコミットに対して全ジョブを再実行し、公開ジョブが同一コミットのZIPを生成します。

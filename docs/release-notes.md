@@ -17,7 +17,7 @@ WordPress・PHPの診断、ログ、管理画面を提供する初回開発版�
 
 PHP 8.3.6（ディストリビューション版）・MariaDB 10.11.14・WordPress 7.1.4で、単体テスト、実WordPressスモーク、HTTP管理画面とZIP取得、nonce不正時403、ZIPの版・チャネル・Gitコミット・環境情報を確認しました。静的解析、コーディング規約、依存監査、配布テストも実施しています。監査での修正と最終的なテスト件数・結果は [検証記録](verification.md) を参照してください。
 
-CIにはPHP 8.2 / 8.3 / 8.4 / 8.5 × WordPress 7.0.8 / 7.1.4を設定しています。全組み合わせの成功を確認したものではありません。実行状況は [Actions](https://github.com/crevice0308/Fortress-Security-Ultimate/actions) で確認してください。モバイル用CSSは実装済みですが、ブラウザー描画検証は未完了です。
+[GitHub CI](https://github.com/crevice0308/Fortress-Security-Ultimate/actions/runs/41604028704)でPHP 8.2 / 8.3 / 8.4 / 8.5の品質チェック4件とWordPress 7.0.8 / 7.1.4の互換性8組み合わせがすべて成功しました。PHPUnit37件・232アサーション、配布テスト13件を実行しています。モバイル用CSSは実装済みですが、ブラウザー描画検証は未完了です。
 
 ## 導入・再現手順
 
